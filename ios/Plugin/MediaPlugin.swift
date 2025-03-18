@@ -413,6 +413,7 @@ public class MediaPlugin: CAPPlugin {
 
         let offset = call.getInt("offset", 0)
         let fetchCount = call.getBool("fetchCount", true)
+        let favoritesOnly = call.getBool("favoritesOnly", false)
 
         let startDateStr = call.getString("startDate", "")
         let endDateStr = call.getString("endDate", "")
@@ -446,6 +447,10 @@ public class MediaPlugin: CAPPlugin {
             let endOfDay = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: ed) ?? ed
             queryOptions.append("creationDate <= %@")
             argumentArray.append(endOfDay as NSDate)
+        }
+        if favoritesOnly {
+            queryOptions.append("isFavorite == %@")
+            argumentArray.append(true as NSNumber)
         }
         let types = call.getString("types") ?? MediaPlugin.DEFAULT_TYPES
         if types == "photos" {

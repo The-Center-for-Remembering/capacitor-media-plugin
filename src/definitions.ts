@@ -138,6 +138,11 @@ export interface MediaFetchOptions {
    * If we are to fetch total count (default true)
    */
   fetchCount?: boolean;
+  
+  /**
+   * Return only favorite photos (iOS only)
+   */
+  favoritesOnly?: boolean;
 }
 
 export interface MediaSort {
