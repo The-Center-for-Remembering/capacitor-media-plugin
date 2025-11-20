@@ -55,6 +55,8 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 
+import org.json.JSONObject;
+
 @CapacitorPlugin(
     name = "Media",
     permissions = {
@@ -199,11 +201,11 @@ public class MediaPlugin extends Plugin {
 
         for (Cursor cur : curs) {
             while (cur.moveToNext()) {
-                String albumName = cur.getString((cur.getColumnIndex(MediaStore.MediaColumns.BUCKET_DISPLAY_NAME)));
-                String bucketId = cur.getString((cur.getColumnIndex(MediaStore.MediaColumns.BUCKET_ID)));
+                String albumName = cur.getString((Math.max(0, cur.getColumnIndex(MediaStore.MediaColumns.BUCKET_DISPLAY_NAME))));
+                String bucketId = cur.getString((Math.max(0, cur.getColumnIndex(MediaStore.MediaColumns.BUCKET_ID))));
 
                 if (!bucketIds.contains(bucketId)) {
-                    String path = cur.getString((cur.getColumnIndex(MediaStore.MediaColumns.DATA)));
+                    String path = cur.getString((Math.max(0, cur.getColumnIndex(MediaStore.MediaColumns.DATA))));
                     File fileForPath = new File(path);
                     JSObject album = new JSObject();
 
@@ -328,9 +330,9 @@ public class MediaPlugin extends Plugin {
             List<String> sortDescriptors = new ArrayList<>();
             for (int i = 0; i < sortArray.length(); i++) {
                 try {
-                    JSObject sortObj = sortArray.getJSONObject(i);
+                    JSONObject sortObj = sortArray.getJSONObject(i);
                     String key = sortObj.getString("key");
-                    boolean ascending = sortObj.optBoolean("ascending", false);
+                    Boolean ascending = sortObj.getBoolean("ascending", false);
 
                     // Map the key to Android MediaStore column
                     String column = mapSortKeyToColumn(key);
