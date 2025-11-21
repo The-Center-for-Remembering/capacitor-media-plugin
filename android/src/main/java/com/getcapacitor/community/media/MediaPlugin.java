@@ -332,7 +332,7 @@ public class MediaPlugin extends Plugin {
                 try {
                     JSONObject sortObj = sortArray.getJSONObject(i);
                     String key = sortObj.getString("key");
-                    Boolean ascending = sortObj.getBoolean("ascending", false);
+                    Boolean ascending = sortObj.optBoolean("ascending", false);
 
                     // Map the key to Android MediaStore column
                     String column = mapSortKeyToColumn(key);
