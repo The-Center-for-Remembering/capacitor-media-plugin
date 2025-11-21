@@ -301,7 +301,7 @@ public class MediaPlugin extends Plugin {
 
         if (startDateStr != null && endDateStr != null) {
             try {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.US);
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
                 Date startDate = sdf.parse(startDateStr);
                 Date endDate = sdf.parse(endDateStr);
 
