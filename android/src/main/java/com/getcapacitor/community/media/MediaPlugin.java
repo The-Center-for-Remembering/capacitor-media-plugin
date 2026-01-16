@@ -61,7 +61,8 @@ import org.json.JSONObject;
         @Permission(
             strings = { Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO },
             alias = "publicStorage13Plus"
-        )
+        ),
+        @Permission(strings = { "android.permission.READ_MEDIA_VISUAL_USER_SELECTED" }, alias = "publicStorage14PlusPartial")
     }
 )
 public class MediaPlugin extends Plugin {
@@ -70,6 +71,7 @@ public class MediaPlugin extends Plugin {
 
     private static final int API_LEVEL_29 = 29;
     private static final int API_LEVEL_33 = 33;
+    private static final int API_LEVEL_34 = 34;
 
     public static final String EC_ACCESS_DENIED = "accessDenied";
     public static final String EC_ARG_ERROR = "argumentError";
@@ -167,12 +169,20 @@ public class MediaPlugin extends Plugin {
     }
 
     private boolean isStoragePermissionGranted() {
-        String permissionSet = "publicStorage";
-        if (Build.VERSION.SDK_INT >= API_LEVEL_33) {
-            permissionSet = "publicStorage13Plus";
+        // Android 14+ (API 34): Check for either full access OR partial/selected access
+        if (Build.VERSION.SDK_INT >= API_LEVEL_34) {
+            boolean hasFullAccess = getPermissionState("publicStorage13Plus") == PermissionState.GRANTED;
+            boolean hasPartialAccess = getPermissionState("publicStorage14PlusPartial") == PermissionState.GRANTED;
+            return hasFullAccess || hasPartialAccess;
         }
 
-        return getPermissionState(permissionSet) == PermissionState.GRANTED;
+        // Android 13 (API 33): Check for granular media permissions
+        if (Build.VERSION.SDK_INT >= API_LEVEL_33) {
+            return getPermissionState("publicStorage13Plus") == PermissionState.GRANTED;
+        }
+
+        // Android 12 and below: Check for legacy storage permissions
+        return getPermissionState("publicStorage") == PermissionState.GRANTED;
     }
 
     private void _getAlbums(PluginCall call) {
