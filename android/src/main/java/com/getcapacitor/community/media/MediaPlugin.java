@@ -79,6 +79,82 @@ public class MediaPlugin extends Plugin {
     public static final String EC_FS_ERROR = "filesystemError";
 
     @PluginMethod
+    public void getPermissionStatus(PluginCall call) {
+        String status = _getPermissionStatusString();
+        JSObject result = new JSObject();
+        result.put("status", status);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void presentLimitedLibraryPicker(PluginCall call) {
+        // On Android 14+, re-requesting the READ_MEDIA_VISUAL_USER_SELECTED permission
+        // will trigger the photo picker again, allowing users to modify their selection
+        if (Build.VERSION.SDK_INT >= API_LEVEL_34) {
+            String currentStatus = _getPermissionStatusString();
+
+            if ("limited".equals(currentStatus)) {
+                // Save the call and re-request permission to trigger the picker
+                this.bridge.saveCall(call);
+                requestPermissionForAlias("publicStorage14PlusPartial", call, "limitedPickerCallback");
+            } else {
+                // Return current status if not in limited mode
+                JSObject result = new JSObject();
+                result.put("status", currentStatus);
+                call.resolve(result);
+            }
+        } else {
+            // Android 13 and below don't have limited access
+            call.reject("Limited library picker is only available on Android 14+", EC_ARG_ERROR);
+        }
+    }
+
+    @PermissionCallback
+    private void limitedPickerCallback(PluginCall call) {
+        // After the picker is dismissed, return the current status
+        String status = _getPermissionStatusString();
+        JSObject result = new JSObject();
+        result.put("status", status);
+        call.resolve(result);
+    }
+
+    private String _getPermissionStatusString() {
+        if (Build.VERSION.SDK_INT >= API_LEVEL_34) {
+            boolean hasFullAccess = getPermissionState("publicStorage13Plus") == PermissionState.GRANTED;
+            boolean hasPartialAccess = getPermissionState("publicStorage14PlusPartial") == PermissionState.GRANTED;
+
+            if (hasFullAccess) {
+                return "authorized";
+            } else if (hasPartialAccess) {
+                return "limited";
+            } else {
+                // Check if permission was denied or not yet requested
+                PermissionState state = getPermissionState("publicStorage13Plus");
+                if (state == PermissionState.DENIED) {
+                    return "denied";
+                }
+                return "notDetermined";
+            }
+        } else if (Build.VERSION.SDK_INT >= API_LEVEL_33) {
+            PermissionState state = getPermissionState("publicStorage13Plus");
+            if (state == PermissionState.GRANTED) {
+                return "authorized";
+            } else if (state == PermissionState.DENIED) {
+                return "denied";
+            }
+            return "notDetermined";
+        } else {
+            PermissionState state = getPermissionState("publicStorage");
+            if (state == PermissionState.GRANTED) {
+                return "authorized";
+            } else if (state == PermissionState.DENIED) {
+                return "denied";
+            }
+            return "notDetermined";
+        }
+    }
+
+    @PluginMethod
     public void getMedias(PluginCall call) {
         if (isStoragePermissionGranted()) {
             _getMedias(call);

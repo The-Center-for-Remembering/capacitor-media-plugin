@@ -9,10 +9,17 @@ import type {
   MediaPlugin,
   MediaResponse,
   MediaSaveOptions,
+  PermissionStatusResponse,
   PhotoResponse,
 } from './definitions';
 
 export class MediaWeb extends WebPlugin implements MediaPlugin {
+  getPermissionStatus(): Promise<PermissionStatusResponse> {
+    throw this.unimplemented('Not implemented on web.');
+  }
+  presentLimitedLibraryPicker(): Promise<PermissionStatusResponse> {
+    throw this.unimplemented('Not implemented on web.');
+  }
   getMedias(options?: MediaFetchOptions): Promise<MediaResponse> {
     console.log('getMedias', options);
     throw this.unimplemented('Not implemented on web.');

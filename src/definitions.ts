@@ -1,5 +1,22 @@
 export interface MediaPlugin {
   /**
+   * Get the current permission status for accessing the photo library.
+   *
+   * Returns the access level: 'denied', 'authorized', 'limited', or 'notDetermined'.
+   * 'limited' means the user has granted access to only selected photos (iOS 14+ / Android 14+).
+   */
+  getPermissionStatus(): Promise<PermissionStatusResponse>;
+  /**
+   * Present the limited library picker to allow users to select more photos.
+   *
+   * This is only available when the user has granted 'limited' access.
+   * On iOS 14+, this presents the system photo picker.
+   * On Android 14+, this re-triggers the photo selection permission dialog.
+   *
+   * Returns the new permission status after the picker is dismissed.
+   */
+  presentLimitedLibraryPicker(): Promise<PermissionStatusResponse>;
+  /**
    * Get filtered thumbnails from camera roll. iOS only.
    *
    * [Code Examples](https://github.com/capacitor-community/media/blob/master/example/src/components/GetMedias.tsx)
@@ -138,7 +155,7 @@ export interface MediaFetchOptions {
    * If we are to fetch total count (default true)
    */
   fetchCount?: boolean;
-  
+
   /**
    * Return only favorite photos (iOS only)
    */
@@ -287,4 +304,15 @@ export interface PhotoResponse {
    * Available on Android only.
    */
   filePath?: string;
+}
+
+export interface PermissionStatusResponse {
+  /**
+   * The current permission status for accessing the photo library.
+   * - 'denied': User has denied access to photos
+   * - 'authorized': User has granted full access to photos
+   * - 'limited': User has granted access to selected photos only (iOS 14+ / Android 14+)
+   * - 'notDetermined': Permission has not been requested yet
+   */
+  status: 'denied' | 'authorized' | 'limited' | 'notDetermined';
 }
