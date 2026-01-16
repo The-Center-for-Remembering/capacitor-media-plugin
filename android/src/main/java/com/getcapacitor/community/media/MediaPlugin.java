@@ -5,19 +5,17 @@ import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.net.Uri;
-import android.os.SystemClock;
-import android.util.Base64;
-import android.os.Build;
-import android.os.Environment;
-import android.provider.MediaStore;
-import android.util.Log;
-import android.webkit.MimeTypeMap;
-
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.os.SystemClock;
+import android.provider.MediaStore;
+import android.util.Base64;
+import android.util.Log;
 import android.util.Size;
-
+import android.webkit.MimeTypeMap;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Logger;
@@ -28,33 +26,29 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
-
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.ByteArrayOutputStream;
 import java.nio.channels.FileChannel;
-import java.text.SimpleDateFormat;
 import java.text.ParseException;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
-
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-
+import java.util.Set;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-
 import org.json.JSONObject;
 
 @CapacitorPlugin(
@@ -283,16 +277,17 @@ public class MediaPlugin extends Plugin {
 
         // Add date columns if available
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            projection = new String[] {
-                MediaStore.MediaColumns._ID,
-                MediaStore.MediaColumns.DATA,
-                MediaStore.MediaColumns.DATE_ADDED,
-                MediaStore.MediaColumns.DATE_MODIFIED,
-                MediaStore.MediaColumns.DATE_TAKEN,
-                MediaStore.MediaColumns.DISPLAY_NAME,
-                MediaStore.MediaColumns.SIZE,
-                MediaStore.MediaColumns.RELATIVE_PATH
-            };
+            projection =
+                new String[] {
+                    MediaStore.MediaColumns._ID,
+                    MediaStore.MediaColumns.DATA,
+                    MediaStore.MediaColumns.DATE_ADDED,
+                    MediaStore.MediaColumns.DATE_MODIFIED,
+                    MediaStore.MediaColumns.DATE_TAKEN,
+                    MediaStore.MediaColumns.DISPLAY_NAME,
+                    MediaStore.MediaColumns.SIZE,
+                    MediaStore.MediaColumns.RELATIVE_PATH
+                };
         }
 
         // Build selection criteria
@@ -341,9 +336,7 @@ public class MediaPlugin extends Plugin {
                     Log.w("MediaPlugin", "Invalid sort object, skipping: " + e.getMessage());
                 }
             }
-            sortOrder = sortDescriptors.isEmpty()
-                ? MediaStore.MediaColumns.DATE_ADDED + " DESC"
-                : String.join(", ", sortDescriptors);
+            sortOrder = sortDescriptors.isEmpty() ? MediaStore.MediaColumns.DATE_ADDED + " DESC" : String.join(", ", sortDescriptors);
         } else {
             // Handle string format: "creationDate"
             String column = mapSortKeyToColumn(sortParam);
@@ -357,13 +350,7 @@ public class MediaPlugin extends Plugin {
         for (Uri contentUri : contentUris) {
             Cursor cursor = null;
             try {
-                cursor = getActivity().getContentResolver().query(
-                    contentUri,
-                    projection,
-                    selection,
-                    selectionArgs,
-                    sortOrder
-                );
+                cursor = getActivity().getContentResolver().query(contentUri, projection, selection, selectionArgs, sortOrder);
 
                 if (cursor != null) {
                     totalCount += cursor.getCount();
@@ -408,7 +395,10 @@ public class MediaPlugin extends Plugin {
                                 JSObject media = new JSObject();
                                 media.put("identifier", identifier);
                                 media.put("dataUrl", dataUrl);
-                                media.put("creationDate", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(new Date(dateAdded * 1000)));
+                                media.put(
+                                    "creationDate",
+                                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(new Date(dateAdded * 1000))
+                                );
                                 media.put("fullWidth", dimensions[0]);
                                 media.put("fullHeight", dimensions[1]);
                                 media.put("thumbnailWidth", thumbnailWidth);
@@ -504,10 +494,7 @@ public class MediaPlugin extends Plugin {
     private void handleImageByIdentifier(PluginCall call, Uri mediaUri, Integer width, Float compression) {
         try {
             // Load the full image
-            Bitmap fullImage = MediaStore.Images.Media.getBitmap(
-                getActivity().getContentResolver(),
-                mediaUri
-            );
+            Bitmap fullImage = MediaStore.Images.Media.getBitmap(getActivity().getContentResolver(), mediaUri);
 
             if (fullImage == null) {
                 call.reject("Failed to load image", EC_ARG_ERROR);
@@ -541,11 +528,7 @@ public class MediaPlugin extends Plugin {
             String dataUrl = "data:image/jpeg;base64," + base64;
 
             // Save to temporary file
-            File tempFile = File.createTempFile(
-                "image-" + System.currentTimeMillis(),
-                ".jpg",
-                getContext().getCacheDir()
-            );
+            File tempFile = File.createTempFile("image-" + System.currentTimeMillis(), ".jpg", getContext().getCacheDir());
 
             FileOutputStream fos = new FileOutputStream(tempFile);
             fos.write(imageBytes);
@@ -562,7 +545,6 @@ public class MediaPlugin extends Plugin {
 
             Log.d("MediaPlugin", "___GET MEDIA BY IDENTIFIER FINISHED");
             call.resolve(result);
-
         } catch (IOException e) {
             Log.e("MediaPlugin", "Error processing image", e);
             call.reject("Error processing image: " + e.getMessage(), EC_FS_ERROR);
@@ -574,14 +556,8 @@ public class MediaPlugin extends Plugin {
             // For video, we'll just copy it to a temp file and return the path
             // We don't resize or compress videos
 
-            String[] projection = {MediaStore.Video.Media.DATA};
-            Cursor cursor = getActivity().getContentResolver().query(
-                mediaUri,
-                projection,
-                null,
-                null,
-                null
-            );
+            String[] projection = { MediaStore.Video.Media.DATA };
+            Cursor cursor = getActivity().getContentResolver().query(mediaUri, projection, null, null, null);
 
             if (cursor != null && cursor.moveToFirst()) {
                 int columnIndex = cursor.getColumnIndex(MediaStore.Video.Media.DATA);
@@ -643,11 +619,7 @@ public class MediaPlugin extends Plugin {
                 }
 
                 try {
-                    inputFile = File.createTempFile(
-                            "tmp",
-                            "." + extension,
-                            getContext().getCacheDir()
-                    );
+                    inputFile = File.createTempFile("tmp", "." + extension, getContext().getCacheDir());
                     OutputStream os = new FileOutputStream(inputFile);
                     os.write(decodedBytes);
                     os.close();
@@ -851,10 +823,7 @@ public class MediaPlugin extends Plugin {
                 }
 
                 // Calculate scaling
-                float scale = Math.min(
-                    (float) thumbnailWidth / fullImage.getWidth(),
-                    (float) thumbnailHeight / fullImage.getHeight()
-                );
+                float scale = Math.min((float) thumbnailWidth / fullImage.getWidth(), (float) thumbnailHeight / fullImage.getHeight());
 
                 int scaledWidth = Math.round(fullImage.getWidth() * scale);
                 int scaledHeight = Math.round(fullImage.getHeight() * scale);
@@ -887,17 +856,16 @@ public class MediaPlugin extends Plugin {
             options.inJustDecodeBounds = true;
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-
                 getActivity().getContentResolver().openInputStream(imageUri);
                 BitmapFactory.decodeStream(getActivity().getContentResolver().openInputStream(imageUri), null, options);
             } else {
                 BitmapFactory.decodeFile(imageUri.getPath(), options);
             }
 
-            return new int[]{options.outWidth, options.outHeight};
+            return new int[] { options.outWidth, options.outHeight };
         } catch (Exception e) {
             Log.e("MediaPlugin", "Error getting image dimensions", e);
-            return new int[]{0, 0};
+            return new int[] { 0, 0 };
         }
     }
 
