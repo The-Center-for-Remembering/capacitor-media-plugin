@@ -423,12 +423,12 @@ public class MediaPlugin: CAPPlugin {
 
         if !startDateStr.isEmpty {
             let dateFormatter = DateFormatter();
-            dateFormatter.dateFormat = "yyyy/MM/dd"
+            dateFormatter.dateFormat = "yyyy-MM-dd"
             startDate = dateFormatter.date(from: startDateStr)
         }
         if !endDateStr.isEmpty {
             let dateFormatter = DateFormatter();
-            dateFormatter.dateFormat = "yyyy/MM/dd"
+            dateFormatter.dateFormat = "yyyy-MM-dd"
             endDate = dateFormatter.date(from: endDateStr)
         }
 
