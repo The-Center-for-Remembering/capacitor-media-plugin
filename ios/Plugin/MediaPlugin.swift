@@ -3,6 +3,7 @@ import Photos
 import Capacitor
 import SDWebImage
 import CoreServices
+import PhotosUI
 
 public class JSDate {
     static func toString(_ date: Date) -> String {
@@ -62,17 +63,17 @@ public class MediaPlugin: CAPPlugin {
     }
     
     @objc func presentLimitedLibraryPicker(_ call: CAPPluginCall) {
-        if #available(iOS 14, *) {
+        if #available(iOS 15, *) {
             let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
             
             // Only present picker if we have limited access
             if status == .limited {
                 DispatchQueue.main.async {
                     if let viewController = self.bridge?.viewController {
-                        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: viewController)
-                        // Return the current status - the picker is presented asynchronously
-                        // and the user can monitor changes via getPermissionStatus or by re-fetching media
-                        call.resolve(["status": "limited"])
+                        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: viewController) { _ in
+                            // Picker dismissed
+                            call.resolve(["status": "limited"])
+                        }
                     } else {
                         call.reject("Unable to present picker - no view controller available", EC_ARG_ERROR)
                     }
