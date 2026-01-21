@@ -3,6 +3,7 @@ import Photos
 import Capacitor
 import SDWebImage
 import CoreServices
+import PhotosUI
 
 public class JSDate {
     static func toString(_ date: Date) -> String {
@@ -35,6 +36,60 @@ public class MediaPlugin: CAPPlugin {
 
     // Must be lazy here because it will prompt for permissions on instantiation without it
     lazy var imageManager = PHCachingImageManager()
+
+    @objc func getPermissionStatus(_ call: CAPPluginCall) {
+        var status = PHAuthorizationStatus.notDetermined
+        if #available(iOS 14, *) {
+            status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        } else {
+            status = PHPhotoLibrary.authorizationStatus()
+        }
+        
+        var statusString: String
+        switch status {
+        case .authorized:
+            statusString = "authorized"
+        case .denied, .restricted:
+            statusString = "denied"
+        case .notDetermined:
+            statusString = "notDetermined"
+        case .limited:
+            statusString = "limited"
+        @unknown default:
+            statusString = "notDetermined"
+        }
+        
+        call.resolve(["status": statusString])
+    }
+    
+    @objc func presentLimitedLibraryPicker(_ call: CAPPluginCall) {
+        if #available(iOS 15, *) {
+            let status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+            
+            // Only present picker if we have limited access
+            if status == .limited {
+                DispatchQueue.main.async {
+                    if let viewController = self.bridge?.viewController {
+                        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: viewController) { _ in
+                            // Picker dismissed
+                            call.resolve(["status": "limited"])
+                        }
+                    } else {
+                        call.reject("Unable to present picker - no view controller available", EC_ARG_ERROR)
+                    }
+                }
+            } else if status == .authorized {
+                call.resolve(["status": "authorized"])
+            } else if status == .denied || status == .restricted {
+                call.resolve(["status": "denied"])
+            } else {
+                call.resolve(["status": "notDetermined"])
+            }
+        } else {
+            // iOS 13 and below don't have limited access
+            call.reject("Limited library picker is only available on iOS 14+", EC_ARG_ERROR)
+        }
+    }
 
     @objc func getAlbums(_ call: CAPPluginCall) {
         checkAuthorization(permission: .readWrite, allowed: {
@@ -345,11 +400,21 @@ public class MediaPlugin: CAPPlugin {
             status = PHPhotoLibrary.authorizationStatus()
         }
 
-        if status == PHAuthorizationStatus.authorized {
+        // Check for authorized OR limited (iOS 14+) - limited access still allows reading selected photos
+        var isAllowed = status == PHAuthorizationStatus.authorized
+        if #available(iOS 14, *) {
+            isAllowed = isAllowed || status == PHAuthorizationStatus.limited
+        }
+
+        if isAllowed {
             allowed()
         } else {
-            let handler = { (newStatus) in
-                if newStatus == PHAuthorizationStatus.authorized {
+            let handler = { (newStatus: PHAuthorizationStatus) in
+                var newIsAllowed = newStatus == PHAuthorizationStatus.authorized
+                if #available(iOS 14, *) {
+                    newIsAllowed = newIsAllowed || newStatus == PHAuthorizationStatus.limited
+                }
+                if newIsAllowed {
                     allowed()
                 } else {
                     notAllowed()
