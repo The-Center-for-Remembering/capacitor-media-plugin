@@ -94,9 +94,10 @@ public class MediaPlugin extends Plugin {
             String currentStatus = _getPermissionStatusString();
 
             if ("limited".equals(currentStatus)) {
-                // Save the call and re-request permission to trigger the picker
+                // Save the call and request full media permissions to trigger the picker
+                // When user has partial access, requesting full permissions shows the picker
                 this.bridge.saveCall(call);
-                requestPermissionForAlias("publicStorage14PlusPartial", call, "limitedPickerCallback");
+                requestPermissionForAlias("publicStorage13Plus", call, "limitedPickerCallback");
             } else {
                 // Return current status if not in limited mode
                 JSObject result = new JSObject();
