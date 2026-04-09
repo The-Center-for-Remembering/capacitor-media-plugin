@@ -161,7 +161,22 @@ const GetMedias = () => {
         ): (
           <p>count: {medias?.length}, offset: {resultOffset}, totalCount: {Math.max(medias?.length ?? 0, totalCount)}</p>
         )}
-        { medias?.map(media => <p><img key={media.identifier} alt="Media Result" style={{"width": "100px"}} src={media.dataUrl} /><br/>{dayjs(media.creationDate).format('YYYY-M-D - HH:mm')}</p>) }
+        { medias?.map(media => (
+          <div key={media.identifier} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <img alt="Media Result" style={{ width: '100px' }} src={media.dataUrl} />
+            <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
+              <div>creationDate: {dayjs(media.creationDate).format('YYYY-M-D HH:mm')}</div>
+              <div>modificationDate: {media.modificationDate ? dayjs(media.modificationDate).format('YYYY-M-D HH:mm') : '—'}</div>
+              <div>isCameraCapture: {String(media.isCameraCapture)}</div>
+              <div>isScreenshot: {String(media.isScreenshot)}</div>
+              <div>isFavorite: {String(media.isFavorite)}</div>
+              <div>hasLocation: {String(media.hasLocation)}</div>
+              <div>hasAdjustments: {String(media.hasAdjustments)}</div>
+              <div>sourceType: {media.sourceType || '—'}</div>
+              <div>source: {media.source || '—'}</div>
+            </div>
+          </div>
+        )) }
         { highQualityPath && <img alt="High Quality" src={highQualityPath} /> }
     </>
 };
