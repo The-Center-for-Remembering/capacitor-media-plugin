@@ -650,6 +650,7 @@ public class MediaPlugin: CAPPlugin {
                 a["location"] = self.makeLocation(asset)
                 a["type"] = asset.mediaType == .image ? "photo" : "video"
                 a["isFavorite"] = asset.isFavorite
+                a["isScreenshot"] = asset.mediaSubtypes.contains(.photoScreenshot)
 
                 assets.append(a)
             })

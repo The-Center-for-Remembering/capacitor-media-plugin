@@ -230,6 +230,10 @@ export interface MediaAsset {
    * Is media favorited
    */
   isFavorite: boolean;
+  /**
+   * Whether the asset is a screenshot
+   */
+  isScreenshot: boolean;
 }
 
 export interface MediaPath {

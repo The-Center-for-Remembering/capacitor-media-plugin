@@ -493,6 +493,28 @@ public class MediaPlugin extends Plugin {
                                 media.put("type", mediaType);
                                 media.put("isFavorite", false); // Android doesn't have a native favorites concept
 
+                                // Detect screenshots via RELATIVE_PATH (API 29+) or DATA path fallback
+                                boolean isScreenshot = false;
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                    int relPathIdx = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH);
+                                    if (relPathIdx >= 0) {
+                                        String relPath = cursor.getString(relPathIdx);
+                                        if (relPath != null && relPath.toLowerCase(Locale.US).contains("screenshots")) {
+                                            isScreenshot = true;
+                                        }
+                                    }
+                                }
+                                if (!isScreenshot) {
+                                    int dataIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DATA);
+                                    if (dataIdx >= 0) {
+                                        String dataPath = cursor.getString(dataIdx);
+                                        if (dataPath != null && dataPath.toLowerCase(Locale.US).contains("/screenshots/")) {
+                                            isScreenshot = true;
+                                        }
+                                    }
+                                }
+                                media.put("isScreenshot", isScreenshot);
+
                                 // Add location (default to empty)
                                 JSObject location = new JSObject();
                                 location.put("latitude", 0);
