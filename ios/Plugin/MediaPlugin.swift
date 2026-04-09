@@ -646,7 +646,11 @@ public class MediaPlugin: CAPPlugin {
                 if asset.modificationDate != nil {
                     a["modificationDate"] = JSDate.toString(asset.modificationDate!)
                 }
-                a["hasAdjustments"] = asset.hasAdjustments
+                if #available(iOS 15.0, *) {
+                    a["hasAdjustments"] = asset.hasAdjustments
+                } else {
+                    a["hasAdjustments"] = false
+                }
                 a["fullWidth"] = asset.pixelWidth
                 a["fullHeight"] = asset.pixelHeight
                 a["thumbnailWidth"] = image.size.width
