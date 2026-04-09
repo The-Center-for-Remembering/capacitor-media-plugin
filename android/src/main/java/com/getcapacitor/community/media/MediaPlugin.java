@@ -460,6 +460,11 @@ public class MediaPlugin extends Plugin {
                             try {
                                 long id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID));
                                 long dateAdded = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_ADDED));
+                                long dateModified = 0;
+                                int dateModIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED);
+                                if (dateModIdx >= 0) {
+                                    dateModified = cursor.getLong(dateModIdx);
+                                }
 
                                 // Build content URI for the media
                                 Uri mediaUri = Uri.withAppendedPath(contentUri, String.valueOf(id));
@@ -482,10 +487,12 @@ public class MediaPlugin extends Plugin {
                                 JSObject media = new JSObject();
                                 media.put("identifier", identifier);
                                 media.put("dataUrl", dataUrl);
-                                media.put(
-                                    "creationDate",
-                                    new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).format(new Date(dateAdded * 1000))
-                                );
+                                SimpleDateFormat iso = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+                                media.put("creationDate", iso.format(new Date(dateAdded * 1000)));
+                                if (dateModified > 0) {
+                                    media.put("modificationDate", iso.format(new Date(dateModified * 1000)));
+                                }
+                                media.put("hasAdjustments", false); // Not available on Android
                                 media.put("fullWidth", dimensions[0]);
                                 media.put("fullHeight", dimensions[1]);
                                 media.put("thumbnailWidth", thumbnailWidth);
@@ -515,6 +522,67 @@ public class MediaPlugin extends Plugin {
                                 }
                                 media.put("isScreenshot", isScreenshot);
 
+                                // Detect camera captures via DCIM/ path
+                                boolean isCameraCapture = false;
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                    int relPathIdx2 = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH);
+                                    if (relPathIdx2 >= 0) {
+                                        String rel = cursor.getString(relPathIdx2);
+                                        if (rel != null && rel.toLowerCase(Locale.US).contains("dcim/")) {
+                                            isCameraCapture = true;
+                                        }
+                                    }
+                                }
+                                if (!isCameraCapture) {
+                                    int dataIdx2 = cursor.getColumnIndex(MediaStore.MediaColumns.DATA);
+                                    if (dataIdx2 >= 0) {
+                                        String data = cursor.getString(dataIdx2);
+                                        if (data != null && data.toLowerCase(Locale.US).contains("/dcim/")) {
+                                            isCameraCapture = true;
+                                        }
+                                    }
+                                }
+                                media.put("isCameraCapture", isCameraCapture);
+
+                                // Derive source from storage path
+                                String pathForSource = "";
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                    int rpIdx = cursor.getColumnIndex(MediaStore.MediaColumns.RELATIVE_PATH);
+                                    if (rpIdx >= 0) {
+                                        String rp = cursor.getString(rpIdx);
+                                        if (rp != null) pathForSource = rp.toLowerCase(Locale.US);
+                                    }
+                                }
+                                if (pathForSource.isEmpty()) {
+                                    int dIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DATA);
+                                    if (dIdx >= 0) {
+                                        String d = cursor.getString(dIdx);
+                                        if (d != null) pathForSource = d.toLowerCase(Locale.US);
+                                    }
+                                }
+                                String source;
+                                if (isScreenshot) {
+                                    source = "screenshot";
+                                } else if (pathForSource.contains("whatsapp")) {
+                                    source = "messaging:whatsapp";
+                                } else if (pathForSource.contains("telegram")) {
+                                    source = "messaging:telegram";
+                                } else if (pathForSource.contains("messenger")) {
+                                    source = "messaging:messenger";
+                                } else if (pathForSource.contains("signal")) {
+                                    source = "messaging:signal";
+                                } else if (pathForSource.contains("/download/") || pathForSource.startsWith("download/")) {
+                                    source = "download";
+                                } else if (pathForSource.contains("dcim/")) {
+                                    source = "camera";
+                                } else if (pathForSource.contains("pictures/")) {
+                                    source = "pictures";
+                                } else {
+                                    source = "other";
+                                }
+                                media.put("source", source);
+                                media.put("sourceType", ""); // iOS-only: PHAsset.sourceType
+
                                 // Add location (default to empty)
                                 JSObject location = new JSObject();
                                 location.put("latitude", 0);
@@ -523,6 +591,7 @@ public class MediaPlugin extends Plugin {
                                 location.put("altitude", 0);
                                 location.put("speed", 0);
                                 media.put("location", location);
+                                media.put("hasLocation", false); // Android location is not populated from EXIF
 
                                 mediaList.add(media);
                                 itemsProcessed++;

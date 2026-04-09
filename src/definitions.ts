@@ -234,6 +234,40 @@ export interface MediaAsset {
    * Whether the asset is a screenshot
    */
   isScreenshot: boolean;
+  /**
+   * Whether the asset originated from the device camera.
+   * iOS: asset is in user library, not a screenshot, and matches camera filename pattern (IMG_####).
+   * Android: file is under a DCIM/ directory.
+   */
+  isCameraCapture: boolean;
+  /**
+   * Whether the asset has location metadata.
+   * iOS: reflects PHAsset.location. Android: always false (not read from EXIF).
+   */
+  hasLocation: boolean;
+  /**
+   * Last modification date of the asset in ISO 8601 format.
+   * iOS: PHAsset.modificationDate (bumps on library-add and edits).
+   * Android: MediaStore DATE_MODIFIED.
+   */
+  modificationDate?: string;
+  /**
+   * Whether the asset has user edits/adjustments.
+   * iOS: PHAsset.hasAdjustments. Android: always false.
+   */
+  hasAdjustments: boolean;
+  /**
+   * iOS-only: PHAsset.sourceType.
+   * One of 'userLibrary' | 'cloudShared' | 'itunesSynced' | ''. Empty string on Android.
+   */
+  sourceType: string;
+  /**
+   * Android-only: origin derived from storage path.
+   * One of 'camera' | 'screenshot' | 'messaging:whatsapp' | 'messaging:telegram' |
+   * 'messaging:messenger' | 'messaging:signal' | 'download' | 'pictures' | 'other' | ''.
+   * Empty string on iOS.
+   */
+  source: string;
 }
 
 export interface MediaPath {

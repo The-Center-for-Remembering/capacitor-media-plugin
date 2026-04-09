@@ -643,14 +643,35 @@ public class MediaPlugin: CAPPlugin {
                 if asset.creationDate != nil {
                     a["creationDate"] = JSDate.toString(asset.creationDate!)
                 }
+                if asset.modificationDate != nil {
+                    a["modificationDate"] = JSDate.toString(asset.modificationDate!)
+                }
+                a["hasAdjustments"] = asset.hasAdjustments
                 a["fullWidth"] = asset.pixelWidth
                 a["fullHeight"] = asset.pixelHeight
                 a["thumbnailWidth"] = image.size.width
                 a["thumbnailHeight"] = image.size.height
                 a["location"] = self.makeLocation(asset)
+                a["hasLocation"] = asset.location != nil
                 a["type"] = asset.mediaType == .image ? "photo" : "video"
                 a["isFavorite"] = asset.isFavorite
-                a["isScreenshot"] = asset.mediaSubtypes.contains(.photoScreenshot)
+                let isScreenshot = asset.mediaSubtypes.contains(.photoScreenshot)
+                a["isScreenshot"] = isScreenshot
+
+                let originalName = PHAssetResource.assetResources(for: asset).first?.originalFilename ?? ""
+                let isCameraFilename = originalName.range(
+                    of: #"^IMG_\d+\.(HEIC|JPG|JPEG|MOV|MP4)$"#,
+                    options: [.regularExpression, .caseInsensitive]
+                ) != nil
+                a["isCameraCapture"] = asset.sourceType == .typeUserLibrary && !isScreenshot && isCameraFilename
+
+                switch asset.sourceType {
+                case .typeUserLibrary: a["sourceType"] = "userLibrary"
+                case .typeCloudShared: a["sourceType"] = "cloudShared"
+                case .typeiTunesSynced: a["sourceType"] = "itunesSynced"
+                default: a["sourceType"] = ""
+                }
+                a["source"] = "" // Android-only: path-based origin
 
                 assets.append(a)
             })
