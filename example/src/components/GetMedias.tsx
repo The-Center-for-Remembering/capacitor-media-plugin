@@ -206,6 +206,7 @@ const GetMedias = () => {
               <div>isFavorite: {String(media.isFavorite)}</div>
               <div>hasLocation: {String(media.hasLocation)}</div>
               <div>lat: {media.location?.latitude ?? '—'}, lon: {media.location?.longitude ?? '—'}</div>
+              <div>addedDate: {media.addedDate ? dayjs(media.addedDate).format('YYYY-M-D HH:mm') : '—'}</div>
               <div>hasAdjustments: {String(media.hasAdjustments)}</div>
               <div>sourceType: {media.sourceType || '—'}</div>
               <div>source: {media.source || '—'}</div>

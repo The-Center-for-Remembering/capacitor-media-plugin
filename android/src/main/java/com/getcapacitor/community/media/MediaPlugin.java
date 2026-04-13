@@ -493,6 +493,7 @@ public class MediaPlugin extends Plugin {
                                     media.put("modificationDate", iso.format(new Date(dateModified * 1000)));
                                 }
                                 media.put("hasAdjustments", false); // Not available on Android
+                                media.put("addedDate", JSONObject.NULL);
                                 media.put("fullWidth", dimensions[0]);
                                 media.put("fullHeight", dimensions[1]);
                                 media.put("thumbnailWidth", thumbnailWidth);

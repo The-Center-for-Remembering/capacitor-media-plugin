@@ -257,6 +257,11 @@ export interface MediaAsset {
    */
   hasAdjustments: boolean;
   /**
+   * Date the asset was added to the Photos library in ISO 8601 format.
+   * iOS 15+: PHAsset.addedDate. Undefined on older iOS versions and Android.
+   */
+  addedDate: string | null;
+  /**
    * iOS-only: PHAsset.sourceType.
    * One of 'userLibrary' | 'cloudShared' | 'itunesSynced' | ''. Empty string on Android.
    */
