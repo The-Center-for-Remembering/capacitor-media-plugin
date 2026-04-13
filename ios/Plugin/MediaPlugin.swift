@@ -656,7 +656,12 @@ public class MediaPlugin: CAPPlugin {
                 a["thumbnailWidth"] = image.size.width
                 a["thumbnailHeight"] = image.size.height
                 a["location"] = self.makeLocation(asset)
-                a["hasLocation"] = asset.location != nil
+                let loc = asset.location
+                let hasValidLocation = loc != nil
+                    && loc!.coordinate.latitude != 0.0
+                    && loc!.coordinate.longitude != 0.0
+                    && loc!.horizontalAccuracy >= 0
+                a["hasLocation"] = hasValidLocation
                 a["type"] = asset.mediaType == .image ? "photo" : "video"
                 a["isFavorite"] = asset.isFavorite
                 let isScreenshot = asset.mediaSubtypes.contains(.photoScreenshot)
