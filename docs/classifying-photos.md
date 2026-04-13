@@ -45,23 +45,17 @@ function classifyPhotoIOS(asset: MediaAsset) {
   // Not a camera capture → saved from web, messaging app, meme, etc.
   if (!asset.isCameraCapture) return 'downloaded_or_saved';
 
-  // Import gap: added to library long after shot, and not just edited
-  const creationMs = +new Date(asset.creationDate);
-  const modMs = asset.modificationDate ? +new Date(asset.modificationDate) : creationMs;
-  const gapMs = modMs - creationMs;
-  const isImported = gapMs > 60_000 && !asset.hasAdjustments;
-
-  // Classic iMessage save: camera filename, GPS stripped, added later
-  if (isImported && !asset.hasLocation) return 'shared_with_me';
-
-  // Own capture: GPS present, no import gap
-  if (asset.hasLocation && !isImported) return 'taken_by_me';
-
-  // Own capture with Camera location disabled (or AirDrop right after capture)
-  if (!asset.hasLocation && !isImported) return 'taken_by_me_likely';
-
-  // GPS present but imported later — likely AirDropped from friend's iPhone.
-  // Indistinguishable from own capture without EXIF Make/Model comparison.
+  // Primary signal: GPS presence.
+  // - Own camera captures almost always have GPS (Camera location is on by default).
+  // - iMessage/Mail strip GPS when sharing.
+  // - AirDrop preserves GPS and is indistinguishable from own captures without
+  //   EXIF Make/Model comparison (see getMediaDetails suggestion below).
+  //
+  // Note: modificationDate gap is NOT used because iCloud Photos sync, face
+  // detection, Live Photo stabilization, etc. bump modificationDate on own
+  // captures unpredictably, so any threshold either misclassifies own photos
+  // or misses recently-shared ones.
+  if (asset.hasLocation) return 'taken_by_me';
   return 'shared_with_me_likely';
 }
 ```
@@ -86,7 +80,9 @@ function classifyPhotoAndroid(asset: MediaAsset) {
     const creationMs = +new Date(asset.creationDate);
     const modMs = asset.modificationDate ? +new Date(asset.modificationDate) : creationMs;
     const gapMs = Math.abs(modMs - creationMs);
-    return gapMs > 60_000 ? 'taken_by_me_likely' : 'taken_by_me';
+    return gapMs > 86_400_000 ? 'taken_by_me_likely' : 'taken_by_me';
+    // (Android still uses the gap since path-based source='camera' is strong
+    // and DATE_MODIFIED on Android isn't churned by iCloud-style background tasks.)
   }
 
   // Pictures/ (loose) — could be a saved screenshot, edited photo, copied file
