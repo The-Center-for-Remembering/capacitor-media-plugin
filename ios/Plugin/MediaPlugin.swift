@@ -648,13 +648,16 @@ public class MediaPlugin: CAPPlugin {
                 }
                 if #available(iOS 15.0, *) {
                     a["hasAdjustments"] = asset.hasAdjustments
+                } else {
+                    a["hasAdjustments"] = false
+                }
+                if #available(iOS 26.0, *) {
                     if let added = asset.addedDate {
                         a["addedDate"] = JSDate.toString(added)
                     } else {
                         a["addedDate"] = NSNull()
                     }
                 } else {
-                    a["hasAdjustments"] = false
                     a["addedDate"] = NSNull()
                 }
                 a["fullWidth"] = asset.pixelWidth
