@@ -652,11 +652,7 @@ public class MediaPlugin: CAPPlugin {
                     a["hasAdjustments"] = false
                 }
                 if #available(iOS 26.0, *) {
-                    if let added = asset.addedDate {
-                        a["addedDate"] = JSDate.toString(added)
-                    } else {
-                        a["addedDate"] = NSNull()
-                    }
+                    a["addedDate"] = JSDate.toString(asset.addedDate)
                 } else {
                     a["addedDate"] = NSNull()
                 }
