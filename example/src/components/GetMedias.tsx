@@ -205,6 +205,7 @@ const GetMedias = () => {
               <div>isScreenshot: {String(media.isScreenshot)}</div>
               <div>isFavorite: {String(media.isFavorite)}</div>
               <div>hasLocation: {String(media.hasLocation)}</div>
+              <div>lat: {media.location?.latitude ?? '—'}, lon: {media.location?.longitude ?? '—'}</div>
               <div>hasAdjustments: {String(media.hasAdjustments)}</div>
               <div>sourceType: {media.sourceType || '—'}</div>
               <div>source: {media.source || '—'}</div>
