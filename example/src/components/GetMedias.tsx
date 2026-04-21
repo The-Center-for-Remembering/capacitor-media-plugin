@@ -13,7 +13,13 @@ function classifyPhotoIOS(asset: MediaAsset): string {
     // Primary signal: GPS presence. Own captures almost always have GPS;
     // iMessage/Mail strips it. AirDrop preserves GPS and is indistinguishable
     // from own capture without EXIF Make/Model comparison.
-    if (asset.hasLocation) return 'taken_by_me';
+    if (asset.addedDate) {
+        const creationMs = +new Date(asset.creationDate);
+        const addedMs = +new Date(asset.addedDate);
+        if (Math.abs(addedMs - creationMs) <= 120_000) return 'taken_by_me';
+    } else if (asset.hasLocation) {
+        return 'taken_by_me';
+    }
     return 'shared_with_me_likely';
 }
 

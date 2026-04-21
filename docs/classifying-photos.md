@@ -12,6 +12,7 @@ Using the fields exposed on `MediaAsset`, here's a practical decision guide for 
 | `hasAdjustments` | `PHAsset.hasAdjustments` | always `false` |
 | `creationDate` | original capture date | `DATE_ADDED` (library-add time) |
 | `modificationDate` | library-add / edit time | `DATE_MODIFIED` |
+| `addedDate` | `PHAsset.addedDate` (iOS 26+, `null` on older) | always `null` |
 | `sourceType` | `userLibrary` / `cloudShared` / `itunesSynced` | `""` |
 | `source` | `""` | `camera` / `screenshot` / `messaging:*` / `download` / `pictures` / `other` |
 | `isFavorite` | `PHAsset.isFavorite` | always `false` |
@@ -45,17 +46,21 @@ function classifyPhotoIOS(asset: MediaAsset) {
   // Not a camera capture → saved from web, messaging app, meme, etc.
   if (!asset.isCameraCapture) return 'downloaded_or_saved';
 
-  // Primary signal: GPS presence.
-  // - Own camera captures almost always have GPS (Camera location is on by default).
-  // - iMessage/Mail strip GPS when sharing.
-  // - AirDrop preserves GPS and is indistinguishable from own captures without
-  //   EXIF Make/Model comparison (see getMediaDetails suggestion below).
-  //
-  // Note: modificationDate gap is NOT used because iCloud Photos sync, face
-  // detection, Live Photo stabilization, etc. bump modificationDate on own
-  // captures unpredictably, so any threshold either misclassifies own photos
-  // or misses recently-shared ones.
-  if (asset.hasLocation) return 'taken_by_me';
+  // Primary signal (iOS 26+): addedDate vs creationDate gap.
+  // Own captures are added to the library within seconds of creation.
+  // Shared/imported photos typically have a larger gap.
+  if (asset.addedDate) {
+    const creationMs = +new Date(asset.creationDate);
+    const addedMs = +new Date(asset.addedDate);
+    if (Math.abs(addedMs - creationMs) <= 120_000) return 'taken_by_me';
+  } else if (asset.hasLocation) {
+    // Fallback for pre-iOS 26: GPS presence.
+    // Own captures almost always have GPS (Camera location is on by default).
+    // iMessage/Mail strip GPS when sharing.
+    // AirDrop preserves GPS and is indistinguishable from own captures without
+    // EXIF Make/Model comparison (see getMediaDetails suggestion below).
+    return 'taken_by_me';
+  }
   return 'shared_with_me_likely';
 }
 ```
@@ -80,7 +85,7 @@ function classifyPhotoAndroid(asset: MediaAsset) {
     const creationMs = +new Date(asset.creationDate);
     const modMs = asset.modificationDate ? +new Date(asset.modificationDate) : creationMs;
     const gapMs = Math.abs(modMs - creationMs);
-    return gapMs > 86_400_000 ? 'taken_by_me_likely' : 'taken_by_me';
+    return gapMs > 60_000 ? 'taken_by_me_likely' : 'taken_by_me';
     // (Android still uses the gap since path-based source='camera' is strong
     // and DATE_MODIFIED on Android isn't churned by iCloud-style background tasks.)
   }
@@ -114,7 +119,7 @@ function isUserTaken(asset: MediaAsset) {
 | Scenario | iOS result | Android result |
 |---|---|---|
 | Own photo, GPS on | `taken_by_me` | `taken_by_me` |
-| Own photo, GPS off | `taken_by_me_likely` | `taken_by_me` |
+| Own photo, GPS off | `taken_by_me` (iOS 26+ via addedDate) / `shared_with_me_likely` (older) | `taken_by_me` |
 | Screenshot | `screenshot` | `screenshot` |
 | Saved from iMessage | `shared_with_me` | n/a — iMessage doesn't exist |
 | WhatsApp received | `downloaded_or_saved`* | `shared_with_me` (via `source`) |
@@ -127,10 +132,11 @@ function isUserTaken(asset: MediaAsset) {
 ## Known limitations
 
 1. **iOS can't identify origin app.** Anything saved to the library via "Save Image" from any app (Messages, Mail, Safari, WhatsApp, Instagram) looks identical at the PhotoKit layer. You only get "imported-like" signals (no GPS, import gap, no camera filename).
-2. **AirDropped friend photos on iOS** preserve filename, EXIF, and GPS. If saved soon after capture they're indistinguishable from own captures without EXIF `Make`/`Model` comparison.
-3. **Android `hasLocation` is always false** — EXIF GPS isn't read. The `source` field covers the common classification needs without it.
-4. **Android `creationDate` is `DATE_ADDED`**, not the original capture time. This means the Android import-gap check is weaker than iOS. If you need it to be stronger, add `DATE_TAKEN` to the projection and use it instead of `DATE_ADDED`.
-5. **Edited own photos on iOS**: `hasAdjustments` is used to suppress the import-gap signal so edits don't look like imports. Android has no equivalent.
+2. **AirDropped friend photos on iOS** preserve filename, EXIF, and GPS. If saved soon after capture they're indistinguishable from own captures without EXIF `Make`/`Model` comparison. On iOS 26+, `addedDate` helps: the gap between creation and library-add is typically larger for AirDropped photos than own captures.
+3. **`addedDate` is iOS 26+ only.** On older iOS versions `addedDate` is `null` and the classifier falls back to `hasLocation`.
+4. **Android `hasLocation` is always false** — EXIF GPS isn't read. The `source` field covers the common classification needs without it.
+5. **Android `creationDate` is `DATE_ADDED`**, not the original capture time. This means the Android import-gap check is weaker than iOS. If you need it to be stronger, add `DATE_TAKEN` to the projection and use it instead of `DATE_ADDED`.
+6. **Edited own photos on iOS**: `hasAdjustments` is used to suppress the import-gap signal so edits don't look like imports. Android has no equivalent.
 
 ## Raising accuracy further
 
