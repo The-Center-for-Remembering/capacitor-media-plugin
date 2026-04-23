@@ -4,6 +4,45 @@ import { Media, MediaAsset } from "@west-co/capacitor-media-plugin";
 import { IonButton, IonDatetime, IonDatetimeButton, IonModal, IonInput, IonList, IonItem } from "@ionic/react";
 import { Capacitor } from "@capacitor/core";
 
+function classifyPhotoIOS(asset: MediaAsset): string {
+    if (asset.isScreenshot) return 'screenshot';
+    if (asset.sourceType === 'cloudShared') return 'shared_album';
+    if (asset.sourceType === 'itunesSynced') return 'synced';
+    if (!asset.isCameraCapture) return 'downloaded_or_saved';
+
+    // Primary signal: GPS presence. Own captures almost always have GPS;
+    // iMessage/Mail strips it. AirDrop preserves GPS and is indistinguishable
+    // from own capture without EXIF Make/Model comparison.
+    if (asset.addedDate) {
+        const creationMs = +new Date(asset.creationDate);
+        const addedMs = +new Date(asset.addedDate);
+        if (Math.abs(addedMs - creationMs) <= 120_000) return 'taken_by_me';
+    } else if (asset.hasLocation) {
+        return 'taken_by_me';
+    }
+    return 'shared_with_me_likely';
+}
+
+function classifyPhotoAndroid(asset: MediaAsset): string {
+    if (asset.isScreenshot) return 'screenshot';
+    if (asset.source.startsWith('messaging:')) return 'shared_with_me';
+    if (asset.source === 'download') return 'downloaded_or_saved';
+    if (asset.source === 'camera') {
+        const creationMs = +new Date(asset.creationDate);
+        const modMs = asset.modificationDate ? +new Date(asset.modificationDate) : creationMs;
+        const gapMs = Math.abs(modMs - creationMs);
+        return gapMs > 60_000 ? 'taken_by_me_likely' : 'taken_by_me';
+    }
+    if (asset.source === 'pictures') return 'downloaded_or_saved';
+    return 'unknown';
+}
+
+function classifyPhoto(asset: MediaAsset): string {
+    return Capacitor.getPlatform() === 'ios'
+        ? classifyPhotoIOS(asset)
+        : classifyPhotoAndroid(asset);
+}
+
 const GetMedias = () => {
     const [loading, setLoading] = useState(false);
     const [medias, setMedias] = useState<MediaAsset[]>();
@@ -161,7 +200,25 @@ const GetMedias = () => {
         ): (
           <p>count: {medias?.length}, offset: {resultOffset}, totalCount: {Math.max(medias?.length ?? 0, totalCount)}</p>
         )}
-        { medias?.map(media => <p><img key={media.identifier} alt="Media Result" style={{"width": "100px"}} src={media.dataUrl} /><br/>{dayjs(media.creationDate).format('YYYY-M-D - HH:mm')}</p>) }
+        { medias?.map(media => (
+          <div key={media.identifier} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <img alt="Media Result" style={{ width: '100px' }} src={media.dataUrl} />
+            <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
+              <div><strong>category: {classifyPhoto(media)}</strong></div>
+              <div>creationDate: {dayjs(media.creationDate).format('YYYY-M-D HH:mm')}</div>
+              <div>modificationDate: {media.modificationDate ? dayjs(media.modificationDate).format('YYYY-M-D HH:mm') : '—'}</div>
+              <div>isCameraCapture: {String(media.isCameraCapture)}</div>
+              <div>isScreenshot: {String(media.isScreenshot)}</div>
+              <div>isFavorite: {String(media.isFavorite)}</div>
+              <div>hasLocation: {String(media.hasLocation)}</div>
+              <div>lat: {media.location?.latitude ?? '—'}, lon: {media.location?.longitude ?? '—'}</div>
+              <div>addedDate: {media.addedDate ? dayjs(media.addedDate).format('YYYY-M-D HH:mm') : '—'}</div>
+              <div>hasAdjustments: {String(media.hasAdjustments)}</div>
+              <div>sourceType: {media.sourceType || '—'}</div>
+              <div>source: {media.source || '—'}</div>
+            </div>
+          </div>
+        )) }
         { highQualityPath && <img alt="High Quality" src={highQualityPath} /> }
     </>
 };

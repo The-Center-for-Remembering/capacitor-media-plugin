@@ -643,13 +643,49 @@ public class MediaPlugin: CAPPlugin {
                 if asset.creationDate != nil {
                     a["creationDate"] = JSDate.toString(asset.creationDate!)
                 }
+                if asset.modificationDate != nil {
+                    a["modificationDate"] = JSDate.toString(asset.modificationDate!)
+                }
+                if #available(iOS 15.0, *) {
+                    a["hasAdjustments"] = asset.hasAdjustments
+                } else {
+                    a["hasAdjustments"] = false
+                }
+                if #available(iOS 26.0, *) {
+                    a["addedDate"] = JSDate.toString(asset.addedDate)
+                } else {
+                    a["addedDate"] = NSNull()
+                }
                 a["fullWidth"] = asset.pixelWidth
                 a["fullHeight"] = asset.pixelHeight
                 a["thumbnailWidth"] = image.size.width
                 a["thumbnailHeight"] = image.size.height
                 a["location"] = self.makeLocation(asset)
+                let loc = asset.location
+                let hasValidLocation = loc != nil
+                    && loc!.coordinate.latitude != 0.0
+                    && loc!.coordinate.longitude != 0.0
+                    && loc!.horizontalAccuracy >= 0
+                a["hasLocation"] = hasValidLocation
                 a["type"] = asset.mediaType == .image ? "photo" : "video"
                 a["isFavorite"] = asset.isFavorite
+                let isScreenshot = asset.mediaSubtypes.contains(.photoScreenshot)
+                a["isScreenshot"] = isScreenshot
+
+                let originalName = PHAssetResource.assetResources(for: asset).first?.originalFilename ?? ""
+                let isCameraFilename = originalName.range(
+                    of: #"^IMG_\d+\.(HEIC|JPG|JPEG|MOV|MP4)$"#,
+                    options: [.regularExpression, .caseInsensitive]
+                ) != nil
+                a["isCameraCapture"] = asset.sourceType == .typeUserLibrary && !isScreenshot && isCameraFilename
+
+                switch asset.sourceType {
+                case .typeUserLibrary: a["sourceType"] = "userLibrary"
+                case .typeCloudShared: a["sourceType"] = "cloudShared"
+                case .typeiTunesSynced: a["sourceType"] = "itunesSynced"
+                default: a["sourceType"] = ""
+                }
+                a["source"] = "" // Android-only: path-based origin
 
                 assets.append(a)
             })
